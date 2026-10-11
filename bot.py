@@ -17,6 +17,8 @@ IMPATTI = ["High", "Medium"]
 ORA_RIEPILOGO = 7          # riepilogo del giorno alle 7:00 ora italiana (lun-ven)
 ORA_SETTIMANA = 18         # calendario della settimana la domenica alle 18:00
 AVVISO_MINUTI = 25         # avvisa se l'evento esce entro questi minuti
+AVVISO_VALUTE = ["USD","EUR"]    # avvisi solo per queste valute
+AVVISO_IMPATTI = ["High"]  # avvisi solo per questi impatti
 COLORE = 0x0777FC          # blu ETA
 FOOTER = "Edge Trading Academy · Dati: Forex Factory · Non è consulenza finanziaria"
 
@@ -124,14 +126,14 @@ def calendario_settimana(ev):
 def avvisi(ev, ora, stato):
     gia = set(stato.get("avvisati", []))
     da_avvisare = [e for e in ev if e["id"] not in gia
+                   and e["country"] in AVVISO_VALUTE and e["impact"] in AVVISO_IMPATTI
                    and timedelta(0) < e["dt"] - ora <= timedelta(minutes=AVVISO_MINUTI)]
     gruppi = {}
     for e in da_avvisare:
         gruppi.setdefault(e["dt"], []).append(e)
     for dt, gruppo in sorted(gruppi.items()):
-        alto = any(e["impact"] == "High" for e in gruppo)
         righe = "\n".join(riga(e, con_ora=False) for e in gruppo)
-        invia(embed(f'{"🔴 Notizia ad alto impatto" if alto else "🟠 Notizia a medio impatto"} in arrivo',
+        invia(embed("🔴 Notizia importante in arrivo",
                     f"Esce **{ts(dt, 'R')}**, alle {ts(dt)} (nel tuo orario)\n\n{righe}\n\n"
                     "*Spread più larghi e movimenti bruschi: valuta se restare fuori dal mercato.*"))
         gia.update(e["id"] for e in gruppo)
@@ -164,7 +166,7 @@ def main():
                     "Da ora in questo canale arrivano:\n"
                     f"• il riepilogo delle notizie del giorno alle {ORA_RIEPILOGO}:00 (lun-ven)\n"
                     f"• il calendario della settimana la domenica alle {ORA_SETTIMANA}:00\n"
-                    "• un avviso prima di ogni notizia ad alto e medio impatto"))
+                    "• un avviso prima di ogni notizia importante (alto impatto USA)"))
         return 0
     if MODE == "oggi":
         if not riepilogo_oggi(ev, oggi):
